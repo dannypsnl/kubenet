@@ -1,6 +1,6 @@
-# little kube
+# kubenet
 
-This project is a tiny Kubernetes to show how its network work.
+This project is a tiny Kubernetes only show how its network work.
 
 ### Run
 
