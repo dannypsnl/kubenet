@@ -4,11 +4,14 @@ package kubenet
 
 import (
 	"net"
+	"os/exec"
+	"time"
 
 	"github.com/milosgajdos/tenus"
 )
 
 type Controller struct {
+	thisIP   net.IP
 	thisNet  *net.IPNet
 	ipStatus map[uint32]bool
 	curIP    uint32
@@ -17,9 +20,10 @@ type Controller struct {
 	bridge tenus.Bridger
 }
 
-func NewController(cidr *net.IPNet) *Controller {
+func NewController(ip net.IP, cidr *net.IPNet) *Controller {
 	_, bits := cidr.Mask.Size()
 	return &Controller{
+		thisIP:   ip,
 		thisNet:  cidr,
 		ipStatus: make(map[uint32]bool),
 		curIP:    2,
@@ -43,17 +47,15 @@ func (c *Controller) NewUniqueIP() net.IP {
 func (c *Controller) SetupEnv() {
 	br, err := tenus.NewBridgeWithName("kube-bridge")
 	handleErr(err)
-	err = br.SetLinkIp(c.thisNet.IP, c.thisNet)
+	err = br.SetLinkIp(c.thisIP, c.thisNet)
 	handleErr(err)
 	err = br.SetLinkUp()
 	handleErr(err)
 	c.bridge = br
 }
 
-func (c *Controller) NewContainer(name string) {
+func (c *Controller) NewContainer(name, image string) {
 	veth, err := tenus.NewVethPairWithOptions(name, tenus.VethOptions{PeerName: "kni0"})
-	handleErr(err)
-	err = veth.SetLinkIp(c.NewUniqueIP(), c.thisNet)
 	handleErr(err)
 
 	// same name would reference to the same NIC
@@ -61,11 +63,28 @@ func (c *Controller) NewContainer(name string) {
 	handleErr(err)
 	err = c.bridge.AddSlaveIfc(containerNic)
 	handleErr(err)
+	// FIXME: need to setup broadcast IP
+	// err = netlink.AddDefaultGw(c.thisIP.String(), containerNic.Name)
+	// handleErr(err)
 
 	err = veth.SetLinkUp()
 	handleErr(err)
+	err = veth.SetPeerLinkUp()
+	handleErr(err)
 
-	err = veth.SetPeerLinkNsToDocker(name, "/var/run/docker.sock")
+	cmd := exec.Command("docker", "run", "-d", "--name", name, image)
+	err = cmd.Run()
+	handleErr(err)
+
+	time.Sleep(10 * time.Second)
+
+	pid, err := tenus.DockerPidByName(name, "/var/run/docker.sock")
+	handleErr(err)
+
+	err = veth.SetPeerLinkNsPid(pid)
+	handleErr(err)
+
+	err = veth.SetPeerLinkNetInNs(pid, c.NewUniqueIP(), c.thisNet, nil)
 	handleErr(err)
 }
 
