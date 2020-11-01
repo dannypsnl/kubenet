@@ -7,5 +7,5 @@ run: build
 	@./kubenet
 clean:
 	@ip link delete kube-bridge
-	@ip link delete kni0
-	@ip netns delete test1
+	@ip link delete nginx-1
+	@ip link delete nginx-2

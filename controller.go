@@ -3,7 +3,6 @@
 package kubenet
 
 import (
-	"log"
 	"net"
 
 	"github.com/milosgajdos/tenus"
@@ -65,10 +64,13 @@ func (c *Controller) NewContainer(name string) {
 
 	err = veth.SetLinkUp()
 	handleErr(err)
+
+	err = veth.SetPeerLinkNsToDocker(name, "/var/run/docker.sock")
+	handleErr(err)
 }
 
 func handleErr(err error) {
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 }
