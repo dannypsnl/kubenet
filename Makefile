@@ -1,6 +1,6 @@
 .PHONY: run clean
 run:
-	@go build
+	@go build ./cmd/kubenet/
 	@./kubenet
 clean:
 	@ip link delete kube-bridge

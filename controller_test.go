@@ -1,4 +1,6 @@
-package main
+// +build linux
+
+package kubenet
 
 import (
 	"net"
