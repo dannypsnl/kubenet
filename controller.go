@@ -74,11 +74,16 @@ func (c *Controller) NewContainer(name, image string) {
 	err = veth.SetPeerLinkUp()
 	handleErr(err)
 
-	cmd := exec.Command("docker", "run", "-d", "--name", name, image)
+	cmd := exec.Command(
+		"docker", "run",
+		"--cap-add", "NET_ADMIN",
+		"-d",
+		"--name", name,
+		image)
 	err = cmd.Run()
 	handleErr(err)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	pid, err := tenus.DockerPidByName(name, "/var/run/docker.sock")
 	handleErr(err)
