@@ -3,6 +3,7 @@
 package kubenet
 
 import (
+	"log"
 	"net"
 	"os/exec"
 	"time"
@@ -20,7 +21,11 @@ type Controller struct {
 	bridge tenus.Bridger
 }
 
-func NewController(ip net.IP, cidr *net.IPNet) *Controller {
+func NewController(firstNet string) *Controller {
+	ip, cidr, err := net.ParseCIDR(firstNet)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	_, bits := cidr.Mask.Size()
 	return &Controller{
 		thisIP:   ip,
@@ -63,9 +68,6 @@ func (c *Controller) NewContainer(name, image string) {
 	handleErr(err)
 	err = c.bridge.AddSlaveIfc(containerNic)
 	handleErr(err)
-	// FIXME: need to setup broadcast IP
-	// err = netlink.AddDefaultGw(c.thisIP.String(), containerNic.Name)
-	// handleErr(err)
 
 	err = veth.SetLinkUp()
 	handleErr(err)
@@ -84,7 +86,9 @@ func (c *Controller) NewContainer(name, image string) {
 	err = veth.SetPeerLinkNsPid(pid)
 	handleErr(err)
 
-	err = veth.SetPeerLinkNetInNs(pid, c.NewUniqueIP(), c.thisNet, nil)
+	// FIXME: although this should add default gateway to peer NIC, but get
+	// 		error: Unable to set Default gateway: 10.240.0.1 in pid: 22151 network namespace
+	err = veth.SetPeerLinkNetInNs(pid, c.NewUniqueIP(), c.thisNet, &c.thisIP)
 	handleErr(err)
 }
 

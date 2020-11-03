@@ -10,9 +10,8 @@ import (
 )
 
 func TestController_NewUniqueIP(t *testing.T) {
-	_, n, _ := net.ParseCIDR("10.244.0.0/16")
-	ctl := NewController(n)
+	ctl := NewController("10.244.0.0/16")
 	for i := 2; i < 258; i++ {
-		assert.Equal(t, ipOr(n.IP, intToIP(uint32(i))), ctl.NewUniqueIP())
+		assert.Equal(t, ipOr(net.ParseIP("10.244.0.0"), intToIP(uint32(i))), ctl.NewUniqueIP())
 	}
 }
