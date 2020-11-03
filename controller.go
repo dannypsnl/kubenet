@@ -74,13 +74,12 @@ func (c *Controller) NewContainer(name, image string) {
 	err = veth.SetPeerLinkUp()
 	handleErr(err)
 
-	cmd := exec.Command(
+	err = exec.Command(
 		"docker", "run",
 		"--cap-add", "NET_ADMIN",
 		"-d",
 		"--name", name,
-		image)
-	err = cmd.Run()
+		image).Run()
 	handleErr(err)
 
 	time.Sleep(5 * time.Second)
